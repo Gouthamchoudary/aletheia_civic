@@ -5,6 +5,7 @@
 Aletheia is a production-grade, AI-driven civic assistant designed to eliminate voter friction. Built for the modern citizen, it transforms complex bureaucratic processes into an intuitive, gamified, and highly accessible journey.
 
 This repository represents the benchmark for **Practical AI Usability**, blending seamless **Google Services** integration with state-of-the-art frontend architecture.
+<img width="1904" height="901" alt="image" src="https://github.com/user-attachments/assets/efd2ca6e-2fac-4cd3-96a7-f2bb471d0b22" />
 
 ---
 
@@ -24,6 +25,7 @@ VITE_GEMINI_API_KEY=your_key_here
 ```
 
 Add your Civic API key, Maps key, and Google Analytics ID in Settings for official lookups, interactive maps, and analytics.
+
 
 ---
 
@@ -89,6 +91,19 @@ sequenceDiagram
 4. **Quick Action Prompts:** Anticipates user needs with predictive prompts (e.g., "Check my registration status," "Explain Proposition 4"), minimizing cognitive load.
 
 ---
+<img width="1488" height="777" alt="image" src="https://github.com/user-attachments/assets/4dd016cc-7007-463f-9c31-c967883027ae" />
+---
+
+<img width="1324" height="812" alt="image" src="https://github.com/user-attachments/assets/2ffd25df-7f76-4a30-888e-77abe8402941" />
+---
+
+<img width="615" height="779" alt="image" src="https://github.com/user-attachments/assets/5b401206-42de-4df5-901f-9ce1c58f60c4" />
+---
+
+<img width="1144" height="818" alt="image" src="https://github.com/user-attachments/assets/2130abc5-4df0-43eb-9cf8-7281bf72a05c" />
+---
+
+
 
 ---
 
