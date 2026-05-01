@@ -6,9 +6,6 @@ Aletheia is a production-grade, AI-driven civic assistant designed to eliminate 
 
 This repository represents the benchmark for **Practical AI Usability**, blending seamless **Google Services** integration with state-of-the-art frontend architecture.
 
-
-<img width="1910" height="902" alt="image" src="https://github.com/user-attachments/assets/bd2bd993-39b0-4913-9f1e-014ac6353d57" />
-
 ---
 
 ---
@@ -90,8 +87,6 @@ sequenceDiagram
 2. **Conversational Assistant:** A floating, instantly accessible chat interface powered by **Google Gemini**, capable of handling complex queries, rendering markdown, and maintaining conversation history.
 3. **Actionable Cartography:** Integrated mapping solutions actively pinpoint polling locations, moving beyond static text to provide real-world navigability.
 4. **Quick Action Prompts:** Anticipates user needs with predictive prompts (e.g., "Check my registration status," "Explain Proposition 4"), minimizing cognitive load.
-<img width="1239" height="805" alt="image" src="https://github.com/user-attachments/assets/bd8dd1cf-08d7-4ee1-80ee-2eeb05931a79" />
-
 
 ---
 
@@ -106,9 +101,6 @@ sequenceDiagram
 - **Google Calendar** deep links and ICS downloads for deadlines. See [src/lib/calendar.js](src/lib/calendar.js).
 
 ---
-<img width="1305" height="762" alt="image" src="https://github.com/user-attachments/assets/2053ccea-077d-4de1-b63d-db95923083fa" />
-
-
 ---
 
 ## Code Quality & Maintainability
