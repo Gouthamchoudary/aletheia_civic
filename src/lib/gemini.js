@@ -1,7 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Default API key can be injected via Vite env vars
-export const DEFAULT_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
+export const DEFAULT_API_KEY =
+  import.meta.env.VITE_GEMINI_API_KEY ||
+  "AIzaSyAKEdLSEZuAGrEiX27pigtvQQbDJ8wNfAY";
 
 let genAI = null;
 let currentKey = null;
@@ -61,9 +63,9 @@ Always end complex answers with a follow-up question to continue helping the use
 
 // Try models in priority order — some may be rate-limited on the free tier
 const MODELS = [
-  "gemini-2.0-flash", // Best free-tier model
-  "gemini-2.0-flash-lite", // Lighter, higher rate limits
-  "gemini-2.5-flash", // Most capable, may be busy
+  "gemini-1.5-flash", // Most reliable for free tier
+  "gemini-2.0-flash", // Newest, high performance
+  "gemini-1.5-pro", // Most capable, stricter limits
 ];
 
 export const getChatSession = (history = [], modelIndex = 0) => {
