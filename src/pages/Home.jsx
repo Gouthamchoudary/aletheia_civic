@@ -5,8 +5,18 @@ import {
   NEXT_ELECTION,
   QUICK_PROMPTS,
   getRandomFact,
+  getRegistrationDeadlineDate,
+  getStateByCode,
 } from "../lib/elections";
 import { getCivicKey, lookupVoterInfo } from "../lib/civic";
+import { loadProfile } from "../lib/profile";
+import { getMapsKey } from "../lib/googleServices";
+import {
+  buildGoogleCalendarUrl,
+  buildIcsContent,
+  downloadIcs,
+} from "../lib/calendar";
+import PollingMap from "../components/PollingMap";
 
 // Google Maps embed (no API key required for basic embed)
 const GOOGLE_MAP_URL =
@@ -51,6 +61,7 @@ export default function Home() {
   const [lookupResult, setLookupResult] = useState(null);
   const [lookupError, setLookupError] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
+  const [profile] = useState(loadProfile());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,6 +90,102 @@ export default function Home() {
       .filter(Boolean)
       .join(", ");
   };
+
+  const mapsKey = getMapsKey();
+  const stateInfo = getStateByCode(profile.state);
+  const regDeadlineDate = getRegistrationDeadlineDate(profile.state);
+
+  const formatDate = (date) =>
+    date?.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+  const buildReminder = (reminder) => {
+    if (!reminder.date) return null;
+    const details =
+      `${reminder.detail || ""}\n\nVerify deadlines with your state election office.`.trim();
+    const location = stateInfo?.name || "";
+
+    return {
+      googleUrl: buildGoogleCalendarUrl({
+        title: reminder.title,
+        start: reminder.date,
+        details,
+        location,
+      }),
+      ics: buildIcsContent({
+        title: reminder.title,
+        start: reminder.date,
+        details,
+        location,
+      }),
+    };
+  };
+
+  const reminders = [
+    {
+      id: "registration",
+      title: `${stateInfo?.name || "Your state"} registration deadline`,
+      date: regDeadlineDate,
+      detail: stateInfo?.regDeadline,
+    },
+    {
+      id: "election-day",
+      title: `${NEXT_ELECTION.name} (Election Day)`,
+      date: NEXT_ELECTION.date,
+      detail: NEXT_ELECTION.description,
+    },
+  ];
+
+  const planItems = [
+    {
+      title: "Verify registration",
+      detail: stateInfo
+        ? `Deadline: ${stateInfo.regDeadline}`
+        : "Check your state registration deadline",
+      icon: "how_to_reg",
+    },
+    {
+      title: "Pick a voting method",
+      detail:
+        profile.votingMethod === "mail"
+          ? "Request and track your mail ballot"
+          : profile.votingMethod === "early"
+            ? "Find early voting locations near you"
+            : profile.votingMethod === "in-person"
+              ? "Confirm your polling place and hours"
+              : "Choose between early, mail, or Election Day",
+      icon: "how_to_vote",
+    },
+    {
+      title: "Prepare your ballot",
+      detail: "Research candidates and measures ahead of time",
+      icon: "description",
+    },
+  ];
+
+  const buildLocations = (data) => {
+    if (!data) return [];
+    const list = [];
+    const pushLoc = (loc, type) => {
+      list.push({
+        type,
+        name: loc.address?.locationName || `${type} location`,
+        address: formatAddress(loc.address),
+        hours: loc.pollingHours,
+        notes: loc.notes,
+      });
+    };
+
+    data.pollingLocations?.forEach((loc) => pushLoc(loc, "Polling"));
+    data.earlyVoteSites?.forEach((loc) => pushLoc(loc, "Early vote"));
+    data.dropOffLocations?.forEach((loc) => pushLoc(loc, "Drop-off"));
+    return list;
+  };
+
+  const locationList = buildLocations(lookupResult);
 
   const resolveLocation = (data) => {
     if (!data) return null;
@@ -213,23 +320,12 @@ export default function Home() {
           </div>
           <div className="flex flex-col gap-2">
             {checklist.map((item) => (
-              <div
+              <button
+                type="button"
                 key={item.id}
                 onClick={() => toggleItem(item.id)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                  padding: "0.75rem",
-                  borderRadius: "var(--radius-md)",
-                  background: item.done
-                    ? "var(--color-green)"
-                    : "var(--bg-card-2)",
-                  border: `3px solid var(--border)`,
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  boxShadow: item.done ? "var(--shadow-sm)" : "none",
-                }}
+                className={`checklist-item ${item.done ? "done" : ""}`}
+                aria-pressed={item.done}
               >
                 <div
                   style={{
@@ -268,7 +364,7 @@ export default function Home() {
                   </div>
                   <div className="text-xs text-muted">{item.desc}</div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -356,6 +452,120 @@ export default function Home() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* My voting plan – span 12 */}
+        <div className="card md-col-12 animate-fadeup-delay-2">
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <div>
+              <div className="badge badge-purple mb-2">My Voting Plan</div>
+              <h3 className="text-xl font-head font-bold">
+                Personalized plan for {stateInfo?.name || "your state"}
+              </h3>
+              <p className="text-sm text-muted">
+                Based on your civic profile and {NEXT_ELECTION.type} election.
+              </p>
+            </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => navigate("/settings")}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 14 }}
+              >
+                tune
+              </span>
+              Update Profile
+            </button>
+          </div>
+
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "1rem",
+            }}
+          >
+            {planItems.map((item, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: "1rem",
+                  borderRadius: 12,
+                  border: "2px solid var(--border)",
+                  background: "var(--bg-card-2)",
+                  display: "flex",
+                  gap: "0.75rem",
+                }}
+              >
+                <span
+                  className="material-symbols-outlined text-accent"
+                  style={{ fontSize: 20, marginTop: 2 }}
+                >
+                  {item.icon}
+                </span>
+                <div>
+                  <div className="text-sm font-semibold">{item.title}</div>
+                  <div className="text-xs text-muted mt-1">{item.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="divider" />
+
+          <div className="grid" style={{ gap: "1rem" }}>
+            {reminders.map((reminder) => {
+              const actions = buildReminder(reminder);
+              return (
+                <div
+                  key={reminder.id}
+                  className="plan-reminder"
+                  style={{
+                    padding: "1rem",
+                    borderRadius: 12,
+                    border: "2px solid var(--border)",
+                    background: "var(--bg-card)",
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold">
+                        {reminder.title}
+                      </div>
+                      <div className="text-xs text-muted mt-1">
+                        {reminder.date
+                          ? formatDate(reminder.date)
+                          : reminder.detail || "Date varies by state"}
+                      </div>
+                    </div>
+                    {actions && (
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={actions.googleUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Add to Google Calendar
+                        </a>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() =>
+                            downloadIcs(`${reminder.id}.ics`, actions.ics)
+                          }
+                        >
+                          Download .ics
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -509,6 +719,7 @@ export default function Home() {
               className="input"
               style={{ flex: "1 1 280px" }}
               placeholder="Enter address or ZIP (e.g., 1600 Pennsylvania Ave NW, Washington DC)"
+              aria-label="Enter address for voter info lookup"
               value={lookupAddress}
               onChange={(e) => setLookupAddress(e.target.value)}
             />
@@ -605,6 +816,49 @@ export default function Home() {
                   Official State Info
                 </a>
               )}
+            </div>
+          )}
+
+          {lookupResult && locationList.length > 0 && (
+            <div className="map-grid mt-4">
+              {mapsKey ? (
+                <PollingMap apiKey={mapsKey} locations={locationList} />
+              ) : (
+                <div className="map-panel map-panel-placeholder">
+                  <div className="text-sm font-semibold">
+                    Add a Google Maps key to enable the interactive map.
+                  </div>
+                  <button
+                    className="btn btn-secondary btn-sm mt-3"
+                    onClick={() => navigate("/settings")}
+                  >
+                    Add Maps Key
+                  </button>
+                </div>
+              )}
+
+              <div className="map-list">
+                {locationList.map((loc, idx) => (
+                  <div key={idx} className="map-list-item">
+                    <div className="text-xs text-muted">{loc.type}</div>
+                    <div className="text-sm font-semibold">{loc.name}</div>
+                    <div className="text-xs text-muted mt-1">{loc.address}</div>
+                    {loc.hours && (
+                      <div className="text-xs text-dim mt-1">
+                        Hours: {loc.hours}
+                      </div>
+                    )}
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(loc.address || loc.name)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-secondary btn-sm mt-2"
+                    >
+                      Directions
+                    </a>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

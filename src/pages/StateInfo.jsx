@@ -57,14 +57,17 @@ export default function StateInfo() {
             className="input mb-3"
             style={{ fontSize: 13, padding: "0.5rem 0.75rem" }}
             placeholder="Search state…"
+            aria-label="Search states"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <div className="flex flex-col gap-1">
             {filtered.map((s) => (
               <button
+                type="button"
                 key={s.code}
                 onClick={() => setSelected(s.code)}
+                aria-pressed={selected === s.code}
                 className="flex items-center gap-2 p-2"
                 style={{
                   borderRadius: 8,

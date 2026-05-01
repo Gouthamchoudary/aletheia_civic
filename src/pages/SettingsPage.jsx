@@ -3,6 +3,13 @@ import { DEFAULT_API_KEY } from "../lib/gemini";
 import { US_STATES } from "../lib/elections";
 import { DEFAULT_PROFILE, loadProfile, saveProfile } from "../lib/profile";
 import { getCivicKey, setCivicKey } from "../lib/civic";
+import {
+  getAnalyticsId,
+  getMapsKey,
+  setAnalyticsId,
+  setMapsKey,
+} from "../lib/googleServices";
+import { initAnalytics } from "../lib/analytics";
 
 export default function SettingsPage({ apiKey, saveApiKey }) {
   const [inputKey, setInputKey] = useState(apiKey || DEFAULT_API_KEY || "");
@@ -11,6 +18,12 @@ export default function SettingsPage({ apiKey, saveApiKey }) {
 
   const [civicKeyInput, setCivicKeyInput] = useState(getCivicKey());
   const [civicSaved, setCivicSaved] = useState(false);
+
+  const [mapsKeyInput, setMapsKeyInput] = useState(getMapsKey());
+  const [mapsSaved, setMapsSaved] = useState(false);
+
+  const [analyticsIdInput, setAnalyticsIdInput] = useState(getAnalyticsId());
+  const [analyticsSaved, setAnalyticsSaved] = useState(false);
 
   const [profile, setProfile] = useState(loadProfile());
   const [profileSaved, setProfileSaved] = useState(false);
@@ -35,6 +48,22 @@ export default function SettingsPage({ apiKey, saveApiKey }) {
     setCivicKey(civicKeyInput.trim());
     setCivicSaved(true);
     setTimeout(() => setCivicSaved(false), 2500);
+  };
+
+  const handleMapsSave = (e) => {
+    e.preventDefault();
+    setMapsKey(mapsKeyInput.trim());
+    setMapsSaved(true);
+    setTimeout(() => setMapsSaved(false), 2500);
+  };
+
+  const handleAnalyticsSave = (e) => {
+    e.preventDefault();
+    const id = analyticsIdInput.trim();
+    setAnalyticsId(id);
+    initAnalytics(id);
+    setAnalyticsSaved(true);
+    setTimeout(() => setAnalyticsSaved(false), 2500);
   };
 
   const handleProfileSave = (e) => {
@@ -261,8 +290,114 @@ export default function SettingsPage({ apiKey, saveApiKey }) {
         </form>
       </div>
 
+      {/* Google Maps + Analytics */}
+      <div className="card card-accent-green mb-5 animate-fadeup-delay-2">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="step-icon green" style={{ width: 48, height: 48 }}>
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 22 }}
+            >
+              map
+            </span>
+          </div>
+          <div>
+            <h2 className="text-xl font-head font-bold">
+              Google Maps + Analytics
+            </h2>
+            <p className="text-sm text-muted">
+              Optional: enable interactive maps and usage analytics.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleMapsSave} className="flex flex-col gap-3 mb-4">
+          <label className="text-xs font-semibold text-muted">
+            Google Maps JavaScript API Key
+          </label>
+          <input
+            type="password"
+            value={mapsKeyInput}
+            onChange={(e) => setMapsKeyInput(e.target.value)}
+            placeholder="AIzaSy..."
+            className="input"
+            style={{ fontFamily: "monospace" }}
+          />
+          <div className="flex gap-3">
+            <button type="submit" className="btn btn-primary">
+              {mapsSaved ? (
+                <>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 16 }}
+                  >
+                    check
+                  </span>{" "}
+                  Saved!
+                </>
+              ) : (
+                <>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 16 }}
+                  >
+                    save
+                  </span>{" "}
+                  Save Maps Key
+                </>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-muted">
+            Enable the Maps JavaScript API in Google Cloud.
+          </p>
+        </form>
+
+        <form onSubmit={handleAnalyticsSave} className="flex flex-col gap-3">
+          <label className="text-xs font-semibold text-muted">
+            Google Analytics Measurement ID
+          </label>
+          <input
+            type="text"
+            value={analyticsIdInput}
+            onChange={(e) => setAnalyticsIdInput(e.target.value)}
+            placeholder="G-XXXXXXXXXX"
+            className="input"
+            style={{ fontFamily: "monospace" }}
+          />
+          <div className="flex gap-3">
+            <button type="submit" className="btn btn-primary">
+              {analyticsSaved ? (
+                <>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 16 }}
+                  >
+                    check
+                  </span>{" "}
+                  Saved!
+                </>
+              ) : (
+                <>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 16 }}
+                  >
+                    save
+                  </span>{" "}
+                  Save Analytics ID
+                </>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-muted">
+            GA4 is optional and can be disabled by clearing the ID.
+          </p>
+        </form>
+      </div>
+
       {/* Civic Profile */}
-      <div className="card card-accent-purple mb-5 animate-fadeup-delay-2">
+      <div className="card card-accent-purple mb-5 animate-fadeup-delay-3">
         <h2 className="text-xl font-head font-bold mb-2">Civic Profile</h2>
         <p className="text-sm text-muted mb-4">
           This profile personalizes AI guidance and study recommendations.

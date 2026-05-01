@@ -13,6 +13,8 @@ import ElectionEducation from "./pages/ElectionEducation";
 import SettingsPage from "./pages/SettingsPage";
 import StateInfo from "./pages/StateInfo";
 import { initGemini, DEFAULT_API_KEY } from "./lib/gemini";
+import { getAnalyticsId } from "./lib/googleServices";
+import { initAnalytics } from "./lib/analytics";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: "dashboard" },
@@ -36,6 +38,10 @@ function App() {
     initGemini(key);
   }, [apiKey]);
 
+  useEffect(() => {
+    initAnalytics(getAnalyticsId());
+  }, []);
+
   const saveApiKey = (key) => {
     setApiKey(key);
     localStorage.setItem("gemini_api_key", key);
@@ -49,6 +55,9 @@ function App() {
 
   return (
     <div style={{ minHeight: "100vh" }}>
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       {/* HEADER */}
       <header className="header">
         <Link to="/" className="header-logo">
@@ -153,7 +162,7 @@ function App() {
       )}
 
       {/* MAIN */}
-      <main className="main">
+      <main className="main" id="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/assistant" element={<Assistant />} />

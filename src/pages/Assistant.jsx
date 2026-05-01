@@ -4,6 +4,11 @@ import DOMPurify from "dompurify";
 import { getChatSession, streamMessage } from "../lib/gemini";
 import { QUICK_PROMPTS, US_STATES } from "../lib/elections";
 import { loadProfile, profileToContext } from "../lib/profile";
+import {
+  clearChatHistory,
+  loadChatHistory,
+  saveChatHistory,
+} from "../lib/chatHistory";
 
 marked.setOptions({ breaks: true, gfm: true });
 
@@ -11,18 +16,21 @@ const renderMarkdown = (content) =>
   DOMPurify.sanitize(marked(content || ""), { USE_PROFILES: { html: true } });
 
 const Assistant = () => {
-  const [messages, setMessages] = useState([
-    {
-      role: "ai",
-      content: `## Hello! I'm Aletheia 👋\n\nI'm your personal **Civic Navigator** — powered by Google Gemini AI.\n\nI can help you with:\n- 🗳️ **Voter registration** status and deadlines\n- 📅 **Key election dates** for your state\n- 📬 **Mail-in / absentee ballot** requests\n- 🏛️ **Finding your polling place**\n- 📜 **Understanding your ballot** and candidates\n- ♿ **Accessibility accommodations** at polling sites\n\nWhat would you like to know today?`,
-      ts: new Date(),
-    },
-  ]);
+  const defaultGreeting = {
+    role: "ai",
+    content: `## Hello! I'm Aletheia 👋\n\nI'm your personal **Civic Navigator** — powered by Google Gemini AI.\n\nI can help you with:\n- 🗳️ **Voter registration** status and deadlines\n- 📅 **Key election dates** for your state\n- 📬 **Mail-in / absentee ballot** requests\n- 🏛️ **Finding your polling place**\n- 📜 **Understanding your ballot** and candidates\n- ♿ **Accessibility accommodations** at polling sites\n\nWhat would you like to know today?`,
+    ts: new Date(),
+  };
+  const [messages, setMessages] = useState(() => {
+    const storedMessages = loadChatHistory();
+    return storedMessages.length ? storedMessages : [defaultGreeting];
+  });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [chatSession, setChatSession] = useState(null);
   const [error, setError] = useState(null);
-  const [showQuick, setShowQuick] = useState(true);
+  const [showQuick, setShowQuick] = useState(messages.length <= 1);
+  const [copied, setCopied] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const baseHistoryRef = useRef([]);
@@ -57,6 +65,10 @@ const Assistant = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    saveChatHistory(messages);
+  }, [messages]);
 
   const sendMessage = async (text, retryIndex = null) => {
     const userText = text.trim();
@@ -152,6 +164,43 @@ const Assistant = () => {
   const formatTime = (date) =>
     date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
+  const buildTranscript = () =>
+    messages
+      .filter((msg) => msg.content)
+      .map((msg) => {
+        const speaker = msg.role === "ai" ? "Aletheia" : "You";
+        return `**${speaker}:**\n${msg.content}`;
+      })
+      .join("\n\n");
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(buildTranscript());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Unable to copy transcript. Please try again.");
+    }
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([buildTranscript()], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "aletheia-chat.md";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleClear = () => {
+    clearChatHistory();
+    setMessages([defaultGreeting]);
+    setShowQuick(true);
+  };
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-4 animate-fadeup">
@@ -190,6 +239,44 @@ const Assistant = () => {
               Always non-partisan
             </span>
           </div>
+        </div>
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={handleCopy}
+            aria-label="Copy chat transcript"
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 16 }}
+            >
+              content_copy
+            </span>
+            {copied ? "Copied" : "Copy"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={handleDownload}
+            aria-label="Download chat transcript"
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 16 }}
+            >
+              download
+            </span>
+            Export
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={handleClear}
+            aria-label="Clear chat history"
+          >
+            Clear
+          </button>
         </div>
       </div>
 

@@ -7,6 +7,8 @@ export const NEXT_ELECTION = {
   type: "Midterm",
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 export const getCountdown = () => {
   const now = new Date();
   const diff = NEXT_ELECTION.date - now;
@@ -378,6 +380,32 @@ export const US_STATES = [
     mailIn: "All voters receive mail ballot",
   },
 ];
+
+export const getStateByCode = (code) =>
+  US_STATES.find((state) => state.code === code);
+
+export const getDeadlineDateFromText = (deadlineText) => {
+  if (!deadlineText) return null;
+  const text = deadlineText.toLowerCase();
+  if (text.includes("no registration")) return null;
+
+  const match = deadlineText.match(/(\d+)\s*days? before election/i);
+  if (match) {
+    const days = Number(match[1]);
+    return new Date(NEXT_ELECTION.date.getTime() - days * DAY_MS);
+  }
+
+  if (text.includes("election day")) {
+    return new Date(NEXT_ELECTION.date);
+  }
+
+  return null;
+};
+
+export const getRegistrationDeadlineDate = (stateCode) => {
+  const state = getStateByCode(stateCode);
+  return getDeadlineDateFromText(state?.regDeadline);
+};
 
 export const QUICK_PROMPTS = [
   {

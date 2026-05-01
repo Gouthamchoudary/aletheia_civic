@@ -1,4 +1,15 @@
 import { useState } from "react";
+import {
+  buildGoogleCalendarUrl,
+  buildIcsContent,
+  downloadIcs,
+} from "../lib/calendar";
+import {
+  NEXT_ELECTION,
+  getRegistrationDeadlineDate,
+  getStateByCode,
+} from "../lib/elections";
+import { loadProfile } from "../lib/profile";
 
 const STEPS = [
   {
@@ -101,6 +112,31 @@ const STEPS = [
 
 export default function ProcessInfo() {
   const [expanded, setExpanded] = useState(0);
+  const [profile] = useState(loadProfile());
+  const stateInfo = getStateByCode(profile.state);
+  const regDeadlineDate = getRegistrationDeadlineDate(profile.state);
+
+  const reminders = [
+    {
+      id: "registration",
+      title: `${stateInfo?.name || "Your state"} registration deadline`,
+      date: regDeadlineDate,
+      detail: stateInfo?.regDeadline,
+    },
+    {
+      id: "election-day",
+      title: `${NEXT_ELECTION.name} (Election Day)`,
+      date: NEXT_ELECTION.date,
+      detail: NEXT_ELECTION.description,
+    },
+  ];
+
+  const formatDate = (date) =>
+    date?.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
 
   return (
     <div>
@@ -125,17 +161,14 @@ export default function ProcessInfo() {
         {STEPS.map((step, i) => {
           const isOpen = expanded === i;
           return (
-            <div
+            <details
               key={i}
-              className={`card ${isOpen ? "card-accent-blue" : ""}`}
-              style={{
-                cursor: "pointer",
-                transition: "all 0.25s ease",
-                animation: `fadeUp 0.4s ease ${i * 0.08}s both`,
-              }}
-              onClick={() => setExpanded(isOpen ? -1 : i)}
+              className={`card details-card ${isOpen ? "card-accent-blue" : ""}`}
+              style={{ animation: `fadeUp 0.4s ease ${i * 0.08}s both` }}
+              open={isOpen}
+              onToggle={(e) => setExpanded(e.currentTarget.open ? i : -1)}
             >
-              <div className="flex items-center gap-4">
+              <summary className="step-summary">
                 <div
                   className={`step-icon ${step.color}`}
                   style={{ width: 52, height: 52, flexShrink: 0, fontSize: 24 }}
@@ -156,63 +189,45 @@ export default function ProcessInfo() {
                   <h2 className="text-xl font-head font-bold">{step.title}</h2>
                   <p className="text-sm text-muted mt-1">{step.desc}</p>
                 </div>
-                <span
-                  className="material-symbols-outlined text-muted"
-                  style={{
-                    fontSize: 24,
-                    transition: "transform 0.3s",
-                    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                    flexShrink: 0,
-                  }}
-                >
+                <span className="material-symbols-outlined text-muted step-caret">
                   expand_more
                 </span>
-              </div>
+              </summary>
 
-              {isOpen && (
-                <div
-                  style={{
-                    marginTop: "1.25rem",
-                    paddingTop: "1.25rem",
-                    borderTop: "1px solid var(--border)",
-                    animation: "fadeUp 0.25s ease both",
-                  }}
-                >
-                  <ul className="flex flex-col gap-2 mb-4">
-                    {step.details.map((d, j) => (
-                      <li key={j} className="flex items-start gap-2 text-sm">
-                        <span
-                          className="material-symbols-outlined text-green"
-                          style={{ fontSize: 18, marginTop: 1 }}
-                        >
-                          check_circle
-                        </span>
-                        <span style={{ color: "var(--text)", lineHeight: 1.6 }}>
-                          {d}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  {step.link && (
-                    <a
-                      href={step.link.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-secondary btn-sm"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+              <div className="step-body">
+                <ul className="flex flex-col gap-2 mb-4">
+                  {step.details.map((d, j) => (
+                    <li key={j} className="flex items-start gap-2 text-sm">
                       <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: 14 }}
+                        className="material-symbols-outlined text-green"
+                        style={{ fontSize: 18, marginTop: 1 }}
                       >
-                        open_in_new
+                        check_circle
                       </span>
-                      {step.link.label}
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
+                      <span style={{ color: "var(--text)", lineHeight: 1.6 }}>
+                        {d}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {step.link && (
+                  <a
+                    href={step.link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-secondary btn-sm"
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14 }}
+                    >
+                      open_in_new
+                    </span>
+                    {step.link.label}
+                  </a>
+                )}
+              </div>
+            </details>
           );
         })}
       </div>
@@ -304,6 +319,72 @@ export default function ProcessInfo() {
               </div>
             </a>
           ))}
+        </div>
+      </div>
+
+      <div
+        className="card mt-6"
+        style={{ maxWidth: 760, margin: "1.5rem auto 0" }}
+      >
+        <h3 className="text-xl font-head font-bold mb-3">
+          Plan your key deadlines
+        </h3>
+        <div className="flex flex-col gap-3">
+          {reminders.map((reminder) => {
+            if (!reminder.date) {
+              return (
+                <div key={reminder.id} className="plan-reminder">
+                  <div className="text-sm font-semibold">{reminder.title}</div>
+                  <div className="text-xs text-muted mt-1">
+                    {reminder.detail || "Date varies by state"}
+                  </div>
+                </div>
+              );
+            }
+
+            const details =
+              `${reminder.detail || ""}\n\nVerify deadlines with your state election office.`.trim();
+            const googleUrl = buildGoogleCalendarUrl({
+              title: reminder.title,
+              start: reminder.date,
+              details,
+              location: stateInfo?.name || "",
+            });
+            const ics = buildIcsContent({
+              title: reminder.title,
+              start: reminder.date,
+              details,
+              location: stateInfo?.name || "",
+            });
+
+            return (
+              <div key={reminder.id} className="plan-reminder">
+                <div>
+                  <div className="text-sm font-semibold">{reminder.title}</div>
+                  <div className="text-xs text-muted mt-1">
+                    {formatDate(reminder.date)}
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <a
+                    href={googleUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Add to Google Calendar
+                  </a>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => downloadIcs(`${reminder.id}.ics`, ics)}
+                  >
+                    Download .ics
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
